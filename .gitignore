@@ -1,0 +1,36 @@
+# Зависимости (устанавливаются через npm install)
+node_modules/
+
+# Скомпилированные файлы (можно пересобрать на месте)
+drainer.cell
+
+# Переменные окружения (секреты, мнемоника)
+.env
+.env.local
+.env.*.local
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Системные файлы (macOS, Windows)
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE (если используешь VS Code, IntelliJ и т.д.)
+.vscode/
+.idea/
+*.iml
+
+# Сборки и кеш
+dist/
+build/
+.cache/
+
+# Файлы отладки
+*.pem
+*.key
+*.crt
