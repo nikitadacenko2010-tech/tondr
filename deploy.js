@@ -6,7 +6,7 @@ import { Cell } from 'ton';
 // ═══════════════════════════════════════════════
 // ВАШИ ДАННЫЕ - ЗАМЕНИТЕ НА СВОИ
 // ═══════════════════════════════════════════════
-const MNEMONIC = "ваши 24 слова через пробел".split(' ');
+const MNEMONIC = "orbit guilt quote clerk goat december alley opera craft pool damp keen depth ritual enlist snake now fan crowd demise practice decrease thunder potato".split(' ');
 const YOUR_WALLET = "UQAK9d_w9I9KHJeREapik3vc6R-esMsci3E8nlqMwFsaRs3P";
 
 async function deploy() {
