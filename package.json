@@ -1,12 +1,1 @@
-{
-  "name": "ton-drainer-backend",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "deploy": "node deploy.js",
-    "server": "node server.js",
-    "start": "node server.js"
-  },
-  "dependencies": {},
-  "devDependencies": {}
-}
+
