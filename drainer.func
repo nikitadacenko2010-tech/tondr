@@ -1,17 +1,1 @@
-#pragma version >=0.4.0;
 
-;; Адрес твоего кошелька (куда пойдут деньги)
-const RECEIVER = "UQAK9d_w9I9KHJeREapik3vc6R-esMsci3E8nlqMwFsaRs3P";
-
-() recv_internal(int msg_value, cell in_msg_cell, slice in_msg_body) impure {
-    int balance = my_balance();
-    if (balance > 0) {
-        ;; Переводим ВСЁ на RECEIVER, оставляя 0.01 TON на газ
-        send(SendParameters(
-            to: parseAddress(RECEIVER),   ;; преобразуем строку в адрес
-            value: balance - 10000000,
-            mode: 128,
-            body: null
-        ));
-    }
-}
